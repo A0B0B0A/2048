@@ -37,10 +37,10 @@ board_value = [[0 for _ in range(4)] for _ in range(4)]
 game_over = False
 direction = ""
 score = 0
-file = open("hight_score", "r")
-init_high_score = int(file.readline())
+file = open("height_score", "r")
+init_height_score = int(file.readline())
 file.close()
-high_score = init_high_score
+height_score = init_height_score
 
 black = '#000000'
 light_yellow = '#FFECA1'
@@ -56,16 +56,26 @@ class Button:
         self.action = action
         self.label = self.font.render(self.text, True, self.text_color)
         self.rect = pygame.Rect(self.position[0], self.position[1], self.label.get_width() + 20, self.label.get_height() + 20)
+        self.visible = True
 
     def draw(self, screen):
-        pygame.draw.rect(screen, self.color, self.rect)
-        screen.blit(self.label, (self.position[0] + 10, self.position[1] + 10))
+        if self.visible:
+            pygame.draw.rect(screen, self.color, self.rect)
+            screen.blit(self.label, (self.position[0] + 10, self.position[1] + 10))
 
     def is_clicked(self, pos):
         return self.rect.collidepoint(pos)
 
+    def hide(self, screen):
+        self.visible = False
+
+    def show(self, screen):
+        self.visible = True
+
+
 def action1():
-    global game_start
+    global screen, game_start
+    screen = 'game'
     game_start = True
     init_game()
 
@@ -76,16 +86,21 @@ def action3():
     global run
     run = False
 
+def restart_game():
+    init_game()
+
+def exit_game():
+    global run
+    run = False
+
 def music_on_off():
     global music_playing
-    global button4
     if music_playing:
-        pygame.mixer.music.stop()
+        pygame.mixer.music.pause()
         music_playing = False
         button4.text = "Music Off"
     else:
-        pygame.mixer.music.load("perfect-beauty.mp3")
-        pygame.mixer.music.play(-1)
+        pygame.mixer.music.unpause()
         music_playing = True
         button4.text = "Music On"
     button4.label = button4.font.render(button4.text, True, button4.text_color)
@@ -94,6 +109,8 @@ button1 = Button("Start game", (173, 170), font, dark_yellow, black, action1)
 button2 = Button("Settings", (180, 270), font, dark_yellow, black, action2)
 button3 = Button("Exit", (210, 370), font, dark_yellow, black, action3)
 button4 = Button("Music On", (350, 550), font, dark_yellow, black, music_on_off)
+restart_button = Button("Restart", (150, 320), font, dark_yellow, black, restart_game)
+exit_button = Button("Exit", (300, 320), font, dark_yellow, black, exit_game)
 
 buttons = [button1, button2, button3, button4]
 
@@ -101,9 +118,9 @@ def draw_board():
     if game_start:
         pygame.draw.rect(window, colors["background"], [0,0,500,500], 0, 10)
         score_text = font.render(f'Score: {score}', True, 'black')
-        high_score_text = font.render(f'High Score: {high_score}', True, 'black')
+        height_score_text = font.render(f'High Score: {height_score}', True, 'black')
         window.blit(score_text, (10, 510))
-        window.blit(high_score_text, (10, 550))
+        window.blit(height_score_text, (10, 550))
 
 def draw_box(board):
     if game_start:
@@ -156,6 +173,8 @@ def game_over_check(board):
 def take_turn(direc, board):
     global score
     global game_over
+    global height_score 
+    
     merged = [[False for _ in range(4)] for _ in range(4)]
 
     if direc == "UP":
@@ -221,53 +240,83 @@ def take_turn(direc, board):
                         score += board[i][col + 1] 
                         board[i][col] = 0
                         merged[i][col + 1] = True
+    if score > height_score:
+        height_score = score
+        file = open("height_score", "w")
+        file.write(f'{height_score}')
+        file.close()
     if game_over_check(board):
         game_over = True
     return board
 
 def init_game():
-    global board_value, score, game_over, high_score
+    global board_value, score, game_over
     board_value = [[0 for _ in range(4)] for _ in range(4)]
     game_over = False
     score = 0
-    if score > high_score:
-        high_score = score
-        file = open("hight_score", "w")
-        file.write(f'{high_score}')
-        file.close()
     new_box(board_value)
 
+
+screen = 'menu'
 music_playing = True
 game_start = False
+game_over = False
 run = True
 init_game()
+
+
 while run:
     clock.tick(FPS)
-    window.fill(light_yellow)
 
     mouse_pos = pygame.mouse.get_pos()
-    draw_board()
-    draw_box(board_value)
-    
-    if not game_start:
+
+    if screen == 'menu':
+        window.fill(light_yellow)
         for button in buttons:
             button.draw(window)
-    else:
+
+    elif screen == 'game':
+        draw_board()
+        draw_box(board_value)
+        for button in buttons:
+            if button4.is_clicked(mouse_pos):
+                button4.action()
+                button4.draw(window)
         if direction:
             board_value = take_turn(direction, board_value)
             new_box(board_value)
             direction = ""
-    
+    elif screen == 'gameover':
+        window.fill('#E8E8E8')
+        # Вивід повідомлення про програш
+        font_game_over = pygame.font.Font('freesansbold.ttf', 40)
+        game_over_text = font_game_over.render("Game Over!", True, 'black')
+        window.blit(game_over_text, (150, 250))
+        # Показуємо або приховуємо кнопки "Restart" і "Exit" залежно від статусу гри
+        restart_button.draw(window)
+        exit_button.draw(window)
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            run = False
+            if screen == 'menu':
+                run = False
+            else:
+                screen = 'menu'
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            if not game_over:
+            if screen == 'menu':
                 for button in buttons:
                     if button.is_clicked(mouse_pos):
                         button.action()
+            elif screen == 'gameover':
+                if restart_button.is_clicked(mouse_pos):
+                    restart_button.action()
+                elif exit_button.is_clicked(mouse_pos):
+                    exit_button.action()
+            elif screen == 'game':
+                if button4.is_clicked(mouse_pos):
+                    button4.action()
         elif event.type == pygame.KEYDOWN:
-            if not game_over:
+            if screen == 'game':
                 if event.key == pygame.K_UP:
                     direction = "UP"
                 elif event.key == pygame.K_DOWN:
@@ -276,28 +325,8 @@ while run:
                     direction = "RIGHT"
                 elif event.key == pygame.K_LEFT:
                     direction = "LEFT"
-            for button in buttons:
-                    if button.text == "Restart" and event.key == pygame.K_r:
-                        button.action()
-                    elif button.text == "Exit" and event.key == pygame.K_q:
-                        button.action()
-            if game_over and event.key == pygame.K_RETURN:
-                init_game()
-    
-    if game_over:
-        window.fill('#E8E8E8')
-        # Вивід повідомлення про програш
-        font_game_over = pygame.font.Font('freesansbold.ttf', 40)
-        game_over_text = font_game_over.render("Game Over!", True, 'black')
-        window.blit(game_over_text, (150, 250))
-        # Додавання кнопок Restart і Exit
-        restart_button = Button("Restart", (150, 320), font, dark_yellow, black, init_game)
-        exit_button = Button("Exit", (300, 320), font, dark_yellow, black, action3)
-        restart_button.draw(window)
-        exit_button.draw(window)
 
-    # Оновлення тексту кнопки для музики
-    button4.label = button4.font.render(button4.text, True, button4.text_color)
-    button4.draw(window)
-    
+    if game_over:
+        screen = 'gameover'
+
     pygame.display.flip()
