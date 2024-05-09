@@ -8,12 +8,19 @@ pygame.mixer.music.load('perfect-beauty.mp3')
 pygame.mixer.music.play()
 pygame.mixer.music.set_volume(0.3)
 
+
 WIDTH, HEIGHT = 500, 600
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 FPS = 90
 clock = pygame.time.Clock()
 pygame.display.set_caption("2048")
-font = pygame.font.Font('calibri-font-family\calibri-bold.ttf', 30)
+font = pygame.font.Font("arial-unicode-ms.ttf", 30)
+
+setting_img = pygame.image.load('settings_img.jpg')
+setting_img = pygame.transform.scale(setting_img, (WIDTH, HEIGHT))
+
+menu_img = pygame.image.load('menu.jpg')
+menu_img = pygame.transform.scale(menu_img, (WIDTH, HEIGHT))
 
 colors = {#словник кольорів
     0: "#D6D6DA",
@@ -33,7 +40,9 @@ colors = {#словник кольорів
     'background': "#B6B6C0",
     'black': "#000000",
     'light_yellow': '#FFECA1',
-    'dark_yellow' :  '#FFDE59'
+    'dark_yellow' :  '#FFDE59',
+    'dark_gray': '#878585',
+    'light_red': '#F7807A'
 }
 
 board_value = [[0 for _ in range(4)] for _ in range(4)]
@@ -46,8 +55,9 @@ file.close()
 height_score = init_height_score
 
 
-class Button:#клас кнопки
-    def __init__(self, text, position, font, color, text_color, action):
+
+class Button:
+    def __init__(self, text, position, font, color, text_color, action, sound=None):
         self.text = text
         self.position = position
         self.font = font
@@ -60,7 +70,8 @@ class Button:#клас кнопки
 
     def draw(self, screen):
         if self.visible:
-            pygame.draw.rect(screen, self.color, self.rect)
+            pygame.draw.rect(screen, self.color, self.rect, border_radius=10)
+            pygame.draw.rect(screen, (152, 245, 249), self.rect, width=5)
             screen.blit(self.label, (self.position[0] + 10, self.position[1] + 10))
 
     def is_clicked(self, pos):
@@ -72,20 +83,26 @@ class Button:#клас кнопки
     def show(self, screen):
         self.visible = True
 
+def init_game():
+    global board_value
+    global score
+    global game_over
+    board_value = [[0 for _ in range(4)] for _ in range(4)]
+    game_over = False
+    score = 0
+    new_box(board_value)
+    new_box(board_value)
+
 #функції кнопок
-def action1():
+def start_game():
     global screen, game_start
     screen = 'game'
     game_start = True
     init_game()
 
-def action2():
+def go_to_settings():
     global screen
     screen = 'settings'
-
-def action3():
-    global run
-    run = False
 
 def restart_game():
     global screen, game_over
@@ -109,13 +126,19 @@ def music_on_off():
         music_btn.text = "Music On"
     music_btn.label = music_btn.font.render(music_btn.text, True, music_btn.text_color)
 
+def return_to_menu():
+    global screen
+    screen = 'menu'
+
 #кнопки
-game_start_btn = Button("Start game", (173, 170), font, colors["dark_yellow"], colors["black"], action1)
-settings_btn = Button("Settings", (180, 270), font, colors["dark_yellow"], colors["black"], action2)
-exit_btn = Button("Exit", (210, 370), font, colors["dark_yellow"], colors["black"], action3)
-music_btn = Button("Music On", (363, 550), font, colors["dark_yellow"], colors["black"], music_on_off)
-restart_button = Button("Restart", (150, 320), font, colors["dark_yellow"], colors["black"], restart_game)
-exit_button = Button("Exit", (300, 320), font, colors["dark_yellow"], colors["black"], exit_game)
+game_start_btn = Button("Start game", (173, 170), font, colors['light_red'], colors["black"], start_game)
+settings_btn = Button("Settings", (180, 270), font, colors['light_red'], colors["black"], go_to_settings)
+exit_btn = Button("Exit", (210, 370), font, colors['light_red'], colors["black"], exit_game())
+music_btn = Button("Music On", (355, 540), font, colors['light_red'], colors["black"], music_on_off)
+restart_button = Button("Restart", (150, 320), font, colors['light_red'], colors["black"], restart_game)
+exit_button = Button("Exit", (300, 320), font, colors['light_red'], colors["black"], exit_game)
+menu_button = Button(" \u21A9 ", (0,0), font, colors['dark_gray'], colors['black'], return_to_menu)
+
 
 #лист кнопок
 buttons = [game_start_btn, settings_btn, exit_btn, music_btn]
@@ -266,20 +289,10 @@ def take_turn(direc, board):
         screen = 'win'
     return board
 
-def init_game():#створення чистого поля
-    global board_value
-    global score 
-    global game_over
-    board_value = [[0 for _ in range(4)] for _ in range(4)]
-    game_over = False
-    score = 0
-    new_box(board_value)
-
 
 screen = 'menu'
 music_playing = True
 game_start = False
-game_over = False
 run = True
 init_game()
 
@@ -289,14 +302,15 @@ while run:
     mouse_pos = pygame.mouse.get_pos()
 
     if screen == 'menu':
-        window.fill(colors["light_yellow"])
+        # window.fill(colors["light_yellow"])
+        window.blit(menu_img, (0, 0))
         for button in buttons:
             button.draw(window)
 
     elif screen == 'game':
         draw_board()
         draw_box(board_value)
-        music_btn.draw(window)  
+        music_btn.draw(window)
         if direction:
             board_value = take_turn(direction, board_value)
             new_box(board_value)
@@ -309,23 +323,25 @@ while run:
         window.blit(game_over_text, (150, 250))
         restart_button.draw(window)
         exit_button.draw(window)
+        menu_button.draw(window)
 
     elif screen == 'win':
+        window.fill('#E8E8E8')
         font_win = pygame.font.Font('calibri-font-family\calibri-bold.ttf', 40)
         winning_text = font_win.render("You Win!", True, 'black')
         window.blit(winning_text, (150, 250))
-        restart_button.draw(window)
-        exit_button.draw(window)
+        menu_button.draw(window)
 
     elif screen == 'settings':
-        window.fill('#E8E8E8')
+        window.blit(setting_img, (0,0))
         font_text = pygame.font.Font('calibri-font-family\calibri-bold.ttf', 25)
-        text1 = font_text.render("Use \u2192, \u2190, \u2191, \u2193 to move ", True, 'black')
-        text2 = font_text.render("Use button 'music' to on or off music ", True, 'black')
-        text3 = font_text.render("Use 'x' to leave ", True, 'black')
-        window.blit(text1, (25, 250))
-        window.blit(text2, (25, 300))
-        window.blit(text3, (25, 350))
+        text1 = font_text.render("Use \u2192, \u2190, \u2191, \u2193 to move. ", True, 'black')
+        text2 = font_text.render("Use button 'music' to turn on or off music. ", True, 'black')
+        text3 = font_text.render("Use 'x' to leave. ", True, 'black')
+        window.blit(text1, (75, 50))
+        window.blit(text2, (25, 100))
+        window.blit(text3, (125, 150))
+        menu_button.draw(window)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -343,14 +359,18 @@ while run:
                     restart_button.action()
                 elif exit_button.is_clicked(mouse_pos):
                     exit_button.action()
+                elif menu_button.is_clicked(mouse_pos):
+                    menu_button.action()
             elif screen == 'game':
                 if music_btn.is_clicked(mouse_pos):
                     music_btn.action()
             elif screen == 'win':
-                if restart_button.is_clicked(mouse_pos):
-                    restart_button.action()
-                elif exit_button.is_clicked(mouse_pos):
-                    exit_button.action()
+                if menu_button.is_clicked(mouse_pos):
+                    menu_button.action()
+            elif screen == 'settings':
+                if menu_button.is_clicked(mouse_pos):
+                    menu_button.action()
+
         elif event.type == pygame.KEYDOWN:
             if screen == 'game':
                 if event.key == pygame.K_UP:
