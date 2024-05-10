@@ -52,7 +52,8 @@ colors = {  # словник кольорів
     'light_yellow': '#FFECA1',
     'dark_yellow': '#FFDE59',
     'dark_gray': '#878585',
-    'light_red': '#F7807A'
+    'light_red': '#F7807A',
+    'white': '#ffffff'
 }
 
 # Ініціалізація змінних гри
@@ -67,13 +68,14 @@ height_score = init_height_score
 
 # Клас кнопки
 class Button:
-    def __init__(self, text, position, font, color, text_color, action, sound=None):
+    def __init__(self, text, position, font, color, text_color, action, width_color):
         self.text = text
         self.position = position
         self.font = font
         self.color = color
         self.text_color = text_color
         self.action = action
+        self.width_color = width_color
         self.label = self.font.render(self.text, True, self.text_color)
         self.rect = pygame.Rect(self.position[0], self.position[1], self.label.get_width() + 20,
                                 self.label.get_height() + 20)
@@ -82,7 +84,7 @@ class Button:
     def draw(self, screen):
         if self.visible:
             pygame.draw.rect(screen, self.color, self.rect, border_radius=10)
-            pygame.draw.rect(screen, (152, 245, 249), self.rect, width=5)
+            pygame.draw.rect(screen, self.width_color, self.rect, width=5)
             screen.blit(self.label, (self.position[0] + 10, self.position[1] + 10))
 
     def is_clicked(self, pos):
@@ -149,22 +151,25 @@ def return_to_menu():
     global screen
     screen = 'menu'
 
-
+def resume_game():
+    global screen
+    screen = 'game'
 # кнопки
-game_start_btn = Button("Start game", (173, 170), font, colors['light_red'], colors["black"], start_game)
-settings_btn = Button("Settings", (180, 270), font, colors['light_red'], colors["black"], go_to_settings)
-exit_btn = Button("Exit", (210, 370), font, colors['light_red'], colors["black"], exit_game)  # <-- ЗМІНА -->
-music_btn = Button("Music On", (355, 540), font, colors['light_red'], colors["black"], music_on_off)
-restart_button = Button("Restart", (150, 450), font, colors['light_red'], colors["black"], restart_game)
-exit_button = Button("Exit", (300, 450), font, colors['light_red'], colors["black"], exit_game)
-menu_button = Button(" \u21A9 ", (0, 0), font, colors['dark_gray'], colors['black'], return_to_menu)
+game_start_btn = Button("Start game", (173, 170), font, colors['light_red'], colors["black"], start_game, (152, 245, 249))
+settings_btn = Button("Settings", (180, 270), font, colors['light_red'], colors["black"], go_to_settings,(152, 245, 249))
+exit_btn = Button("Exit", (210, 370), font, colors['light_red'], colors["black"], exit_game, (152, 245, 249))
+music_btn = Button("Music On", (355, 540), font, colors['light_red'], colors["black"], music_on_off,(152, 245, 249))
+restart_button = Button("Restart", (120, 450), font, colors['black'], colors["white"], restart_game, (255, 255, 255))
+exit_button = Button("Exit", (300, 450), font, colors['black'], colors["white"], exit_game,(255, 255, 255))
+menu_button = Button(" \u21A9 ", (0, 0), font, colors['dark_gray'], colors['black'], return_to_menu, (0, 0, 0))
+resume_button = Button("Resume", (270, 450), font, colors['black'], colors['white'], resume_game, (255, 255, 255))
 
 # Лист кнопок
 buttons_menu = [game_start_btn, settings_btn, exit_btn, music_btn]
-buttons_gameover = [restart_button, exit_button, menu_button]
+buttons_gameover = [restart_button, exit_button]
 buttons_win = [menu_button]
 buttons_settings = [menu_button]
-
+buttons_pause = [restart_button, resume_button, menu_button]
 
 def draw_board():
     '''фукнція створення рахунків'''
@@ -359,6 +364,14 @@ while run:
         for button in buttons_win:
             button.draw(window)
 
+    elif screen == 'pause':
+        window.fill(colors['black'])
+        font_pause = pygame.font.Font('calibri-font-family\calibri-bold.ttf', 75)
+        pause_text = font_pause.render("Pause", True, 'white')
+        window.blit(pause_text, (150, 250))
+        for button in buttons_pause:
+            button.draw(window)
+
     if game_over_check(board_value):
         screen = 'gameover'
 
@@ -369,9 +382,11 @@ while run:
         text1 = font_text.render("Use \u2192, \u2190, \u2191, \u2193 to move. ", True, 'black')
         text2 = font_text.render("Use button 'music' to turn on or off music. ", True, 'black')
         text3 = font_text.render("Use 'x' to leave. ", True, 'black')
-        window.blit(text1, (75, 50))
-        window.blit(text2, (25, 100))
-        window.blit(text3, (125, 150))
+        text4 = font_text.render("Use ESC to pause game. ", True, 'black')
+        window.blit(text1, (75, 35))
+        window.blit(text2, (25, 75))
+        window.blit(text3, (140, 155))
+        window.blit(text4, (120, 115))
         for button in buttons_settings:
             button.draw(window)
 
@@ -385,30 +400,45 @@ while run:
         if event.type == pygame.QUIT:
             if screen == 'menu':
                 run = False
+            if screen == 'gameover':
+                run = False
             else:
                 screen = 'menu'
+
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if screen == 'menu':
                 for button in buttons_menu:
                     if button.is_clicked(mouse_pos):
                         button.action()
+
             elif screen == 'gameover':
                 for button in buttons_gameover:
                     if button.is_clicked(mouse_pos):
                         button.action()
+                if menu_button.is_clicked(mouse_pos):
+                    menu_button.action()
+
             elif screen == 'game':
                 if music_btn.is_clicked(mouse_pos):
                     music_btn.action()
+
             elif screen == 'win':
                 for button in buttons_win:
                     if button.is_clicked(mouse_pos):
                         button.action()
+
             elif screen == 'settings':
                 for button in buttons_settings:
                     if button.is_clicked(mouse_pos):
                         button.action()
+
             elif screen == 'loading':
                 screen = 'menu'
+
+            elif screen == 'pause':
+                for button in buttons_pause:
+                    if button.is_clicked(mouse_pos):
+                        button.action()
 
         elif event.type == pygame.KEYDOWN:
             if screen == 'game':
@@ -420,8 +450,8 @@ while run:
                     direction = "LEFT"
                 elif event.key == pygame.K_RIGHT:
                     direction = "RIGHT"
-            elif event.key == pygame.K_x:
-                screen = 'menu'
+                elif event.key == pygame.K_ESCAPE:
+                    screen = 'pause'
 
     pygame.display.update()
 
