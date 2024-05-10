@@ -359,6 +359,10 @@ while run:
         for button in buttons_win:
             button.draw(window)
 
+    if game_over_check(board_value):
+        screen = 'gameover'
+
+
     elif screen == 'settings':
         window.blit(setting_img, (0, 0))
         font_text = pygame.font.Font('calibri-font-family\calibri-bold.ttf', 25)
