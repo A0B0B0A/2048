@@ -323,7 +323,7 @@ def take_turn(direc, board):
     return board
 
 
-screen = 'loading'
+screen = 'loading'#змінна яка визначає який екран відмалювати
 music_playing = True
 game_start = False
 run = True
@@ -332,7 +332,9 @@ init_game()
 while run:
     clock.tick(FPS)
 
+    # запам'ятовуємо позицію миші
     mouse_pos = pygame.mouse.get_pos()
+
 
     if screen == 'menu':
         # window.fill(colors["light_yellow"])
